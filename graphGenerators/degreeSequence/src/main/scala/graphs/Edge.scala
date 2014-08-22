@@ -43,26 +43,28 @@ object Edges {
 
   trait EdgeLikePair[V, E[_] <: Edge[_]] {
     def pairAsEdge(x: V, y: V): E[V]
-    def edgeEndList(e: E[V]): List[ (V, V) ]
-    def edgeEnds(e: E[V]): Set[V] 
+    def edgeEndPairs(e: E[V]): List[ (V, V) ] //deserves a better, more descriptive name
+    def edgeEnds(e: E[V]): (V, V)
   }
 
   trait BondLikePair[V] extends EdgeLikePair[V, Bond]{
     def pairAsEdge(x: V, y: V): Bond[V] = Bond(x, y)
-    def edgeEndList(e: Bond[V]): List[ (V, V)] = e match { case Bond(x, y) => List( (x, y), (y, x) ) }
-    def edgeEnds(e: Bond[V]): Set[V] = e match { case Bond(x, y) => Set(x, y) }
+    def edgeEndsList(e: Bond[V]): List[ (V, V)] = e match { case Bond(x, y) => List( (x, y), (y, x) ) }
+    def edgeEnds(e: Bond[V]): (V, V) = e match { case Bond(x, y) => (x, y) }
   }
   object BondLikePair{
+    def apply[V]: BondLikePair[V] = new BondLikePair[V]{}
     implicit object BondLikePairOfInts extends BondLikePair[Int]
   }
 
   trait ArrowLikePair[V] extends EdgeLikePair[V, Arrow]{
     def pairAsEdge(x: V, y: V): Arrow[V] = Arrow(x, y)
-    def edgeEndList(e: Arrow[V]): List[ (V, V)] = e match { case Arrow(x, y) => List( (x, y) ) }
-    def edgeEnds(e: Arrow[V]): Set[V] = e match { case Arrow(x, y) => Set(x, y) }
+    def edgeEndsList(e: Arrow[V]): List[ (V, V)] = e match { case Arrow(x, y) => List( (x, y) ) }
+    def edgeEnds(e: Arrow[V]): (V, V) = e match { case Arrow(x, y) => (x, y) }
   }
 
   object ArrowLikePair{
+    def apply[V]: ArrowLikePair[V] = new ArrowLikePair[V]{}
     implicit object ArrowLikePairOfInts extends ArrowLikePair[Int]
   }
 
