@@ -6,56 +6,61 @@ import scala.Predef
 
 
 
-/**
-  * Using type classes
-  */
-
-
 
   /**
-    * Start by defining edges
-    * We want to use ordinary tuples (V, V) for edges
-    * At the same time we want to be able to distinguish cases
-    * where this (V, V) is a directed or undirected edge
+    * We want to be able to work with Graphs that can hold more than one type of edge
+    * Type of an edge may not be set only by its directionality, but also by its context
+    * For example, friendships may be made at work, or at a bar.
     */
 
 
 
 object GraphTypeClass{
-  import Edges._
-  type AL[V, E[_] <: Edge[_]] = Map[V, IndexedSeq[V]]
-  type ESet[V, E[_] <: Edge[_] ] = Set[E[V]]
+  import Edge._
   
 
-  //trait GraphLike[V, G] {
-  trait GraphLike[V, E[_] <: Edge[_], G[_,_[_]]]{
-    def elp: EdgeLikePair[V, E]
-    def vertexes(g: G[V, E]): IndexedSeq[V] 
-    def vertexSet(g: G[V, E]): Set[V]
+  trait EdgeLike[V, E <: Edge[V, V]]{
+    def asEdge(e: (V, V) ): E
+    def asEdge(x: V, y: V): E = asEdge( (x, y) )
+  }
 
-    def degrees(g: G[V, E]): Map[V, Int] = {
+  //trait Graph[V, E <: Edge[V, V]]
+
+  trait BipartiteGraph[V, U, E <: Edge[V, U]]
+
+  trait GraphLike[V, E <: Edge[V, V] with Context with Relation[V, V], G ]{
+
+    this: EdgeLike[V, E] =>
+
+    def vertexes(g: G): Set[V] 
+
+    def degrees(g: G): Map[V, Int] = {
       val al = adjList(g)
       al.map{ case (x, ys) => (x, ys.length) }
     }
 
-    def edgeSet(g: G[V, E]): Set[E[V]]
-    def edgeEnds(g: G[V, E]): List[(V, V)] = edgeSet(g).toList.map(elp.edgeEnds)
+    def edges(g: G): Set[E]
 
-    def adjList(g: G[V, E]): Map[V, IndexedSeq[V]]
+    def adjList(g: G): Map[V, IndexedSeq[V]]
 
-    def from(es: Set[E[V]]): G[V, E]
-    def from(ts: Set[(V, V)])(implicit d: DummyImplicit): G[V, E] = from( ts.map{ case t => (elp.pairAsEdge _).tupled(t) } )
-    def from(al: Map[V, IndexedSeq[V]]): G[V, E] = {
+    def from(es: Set[E]): G
+
+    def from(ts: Set[(V, V)])(implicit dummy: DummyImplicit): G 
+      = from( ts.map{case t => asEdge(t._1, t._2)} )
+
+    def from(al: Map[V, IndexedSeq[V]]): G = {
       val ts: Set[(V, V)] = al.toSeq.flatMap{ case (x, ys) => ys.map( (x, _) ) }.toSet
       from(ts)
     }
 
-    def merger[H[_, _[_]]](g: G[V, E], h: H[V, E])(implicit ev: GraphLike[V, E, H]): G[V, E] = { 
-      from((edgeSet(g) ++ ev.edgeSet(h)))
+    def merger[H](g: G, h: H)
+      (implicit ev: GraphLike[V, E, H]): G = { 
+      from((edges(g) ++ ev.edges(h)))
     }
 
-    def differ[H[_, _[_]]](g: G[V, E], h: H[V, E])(implicit ev: GraphLike[V, E, H]): G[V, E] = {
-      from((edgeSet(g) -- ev.edgeSet(h)))
+    def differ[H](g: G, h: H)
+      (implicit ev: GraphLike[V, E, H]): G = {
+      from((edges(g) -- ev.edges(h)))
     }
   }
 
@@ -70,72 +75,96 @@ object GraphTypeClass{
     import Edges.Edge
     
       
-    //def withEdgeType[V, E[_] <: Edge[_], G[_, _[_]]](elp: EdgeLikePair[V, E]): GraphLike[V, E, G] = {
       
+    type AL[V] = Map[V, IndexedSeq[V]]
 
-    trait AdjList[V, E[_] <: Edge[_]] extends GraphLike[V, E, AL] {
-      def vertexes(g: AL[V, E]) = g.keys.toIndexedSeq
-      def vertexSet(g: AL[V, E]) = g.keys.toSet
-      def adjList(g: AL[V, E]): Map[V, IndexedSeq[V]] = g.asInstanceOf[Map[V, IndexedSeq[V]]]
-      def edgeSet(g: AL[V, E]): Set[E[V]] = {
-        g.flatMap{ case (x, ys) => ys.map{ case y => elp.pairAsEdge(x, y)} }.toSet
+    //trait AL[V, E <: Edge[V, V]] extends Graph[V, E]
+
+    trait AdjList[V, E <: Edge[V, V] with Context with Relation[V, V]] extends GraphLike[V, E, AL[V]] {
+      this: EdgeLike[V, E] =>
+
+      def vertexes(g: AL[V]): Set[V] = g.keys.toSet
+
+      def adjList(g: AL[V]): Map[V, IndexedSeq[V]] = g.asInstanceOf[Map[V, IndexedSeq[V]]]
+      def edges(g: AL[V]): Set[E] = {
+        g.toSeq.flatMap{ case (x, ys) => ys.map{ case y => asEdge(x, y)} }.toSet
       }
 
-      def from(es: Set[E[V]]): AL[V, E] = {
-        es.toSeq.flatMap( elp.edgeEndsPairs ).groupBy(_._1).map{case (x, ys) => (x, ys.map(_._2).toIndexedSeq) }
+      def from(es: Set[E]): AL[V] = {
+        es.toSeq.flatMap(_.order ).groupBy(_._1).map{case (x, ys) => (x, ys.map(_._2).toIndexedSeq) }
       }
 
     }
 
     object AdjList{
-      import Edges.BondLikePair
-      import Edges.ArrowLikePair
 
+      case class Bond[V](val _1: V, val _2: V) extends Edge[V, V] with Product2[V, V] with Relation.Symm[V] with Context.Universe
+
+      trait Undirected[V] extends AdjList[V, Bond[V]] {
+        this: EdgeLike[V, Bond[V]] =>
+      }
 
       object Undirected {
-        def apply[V]: GraphLike[V, Bond, AL] = (new AdjList[V, Bond]{
-            val elp: EdgeLikePair[V, Bond] = BondLikePair[V] 
-          }).asInstanceOf[GraphLike[V, Bond, AL]]
+        object OnInts extends Undirected[Int] with EdgeLike[Int, Bond[Int]] {
+          def asEdge(e: (Int, Int)): Bond[Int] = Bond(e._1, e._2)
+        }
       }
 
-      object Directed {
-        def apply[V]: GraphLike[V, Arrow, AL] = (new AdjList[V, Arrow]{
-            val elp: EdgeLikePair[V, Arrow] = ArrowLikePair[V] 
-          }).asInstanceOf[GraphLike[V, Arrow, AL]]
-      }
+     case class Arrow[V](val _1: V, val _2: V) extends Edge[V, V] with Product2[V, V] with Relation.Asym[V] with Context.Universe
+
+     trait Directed[V] extends AdjList[V, Arrow[V]] {
+       this: EdgeLike[V, Arrow[V]] =>
+     }
+
+     object Directed {
+       object OnInts extends Directed[Int] with EdgeLike[Int, Arrow[Int]] {
+         def asEdge(e: (Int, Int)): Arrow[Int] = Arrow(e._1, e._2)
+       }
+     }
 
     }
 
 
 
-    trait EdgeSet[V, E[_] <: Edge[_]] extends GraphLike[V, E, ESet] {
-      def vertexSet(g: Set[E[V]]): Set[V] = g.flatMap{ 
-        case e =>  elp.edgeEnds(e) match { case (x, y) => Set(x,y)}}
-      def vertexes(g: Set[E[V]]): IndexedSeq[V] = vertexSet(g).toIndexedSeq
+    type ESet[V, E <: Edge[V, V]] = Set[E]
 
-      def adjList(g: Set[E[V]]): Map[V, IndexedSeq[V]] = {
-        g.toSeq.flatMap( elp.edgeEndsPairs ).groupBy(_._1).map{ case(x, ys) => (x, ys.map(_._2).toIndexedSeq) }
-      }
+    trait EdgeSet[V, E <: Edge[V, V] with Context with Relation[V, V]] extends GraphLike[V, E, ESet[V, E]] {
+      this: EdgeLike[V, E] => 
 
-      def edgeSet(g: Set[E[V]]): Set[E[V]] = g
+      def vertexes(g: Set[E]): Set[V] = g.flatMap(_.ends match { case (x, y) => Set(x, y) } )
 
-      def from(es: Set[E[V]]): Set[E[V]] = es
+      def adjList(g: Set[E]): Map[V, IndexedSeq[V]] = 
+        g.toSeq.flatMap( _.order ).groupBy(_._1).map{ case(x, ys) => (x, ys.map(_._2).toIndexedSeq) }
+
+      def edges(g: Set[E]): Set[E] = g
+
+      def from(es: Set[E]): Set[E] = es
     }
 
     object EdgeSet{
-      import Edges.BondLikePair
-      import Edges.ArrowLikePair
+
+      case class Bond[V](val _1: V, val _2: V) extends Edge[V, V] with Product2[V, V] with Relation.Symm[V] with Context.Universe
+
+      trait Undirected[V] extends EdgeSet[V, Bond[V]] {
+        this: EdgeLike[V, Bond[V]] =>
+      }
 
       object Undirected {
-        def apply[V]: GraphLike[V, Bond, ESet] = (new EdgeSet[V, Bond]{
-            val elp: EdgeLikePair[V, Bond] = BondLikePair[V] 
-          }).asInstanceOf[GraphLike[V, Bond, ESet]]
+        object OnInts extends Undirected[Int] with EdgeLike[Int, Bond[Int]] {
+          def asEdge(e: (Int, Int)): Bond[Int] = Bond(e._1, e._2)
+        }
+      }
+
+      case class Arrow[V](val _1: V, val _2: V) extends Edge[V, V] with Product2[V, V] with Relation.Asym[V] with Context.Universe
+
+      trait Directed[V] extends EdgeSet[V, Arrow[V]] {
+        this: EdgeLike[V, Arrow[V]] =>
       }
 
       object Directed {
-        def apply[V]: GraphLike[V, Arrow, ESet] = (new EdgeSet[V, Arrow]{
-            val elp: EdgeLikePair[V, Arrow] = ArrowLikePair[V] 
-          }).asInstanceOf[GraphLike[V, Arrow, ESet]]
+        object OnInts extends Directed[Int] with EdgeLike[Int, Arrow[Int]] {
+          def asEdge(e: (Int, Int)): Arrow[Int] = Arrow(e._1, e._2)
+        }
       }
 
     }

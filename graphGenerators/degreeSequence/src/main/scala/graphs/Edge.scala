@@ -1,71 +1,75 @@
 package learn.graph
 import scala.language.higherKinds
+/** 2014 08 28
+  * Lets not worry about hyper-graphs or hyper-edges
+  * Code something clean and expressive
+  * An edge represents a relationship between two vertexes
+  */
 
-object Edges {
 
-  trait Edge[V] {
-    def reverse: Edge[V]
-    def endPoints: Iterable[V]
-    override def equals(that: Any): Boolean
-    def hashKey: Int
-    override def hashCode = hashKey
+object GraphEdge{
+   
+  trait Context{
+    val context: String
+    def contextually(other: Context): Boolean = other match {
+      case that: Context.Universe => true
+      case that => that.context == this.context
+    }
+  }
+  object Context{
+    trait Universe extends Context {
+      val context: String = "All"
+      override def contextually(that: Context): Boolean = true
+    }
+    case object Universe extends Universe
   }
 
-//an example to show that hyper edges can be played with
-  case class HyperBond[V](val endPoints: Set[V]) extends Edge[V] { 
-    def reverse: HyperBond[V] = HyperBond[V](endPoints)
-    override def equals(that: Any): Boolean = that match {
-      case HyperBond(vset) => endPoints == vset
+
+  trait Relation[V, U]{
+    this: Product2[V, U] => 
+
+    def pair: (V, U) = (_1, _2)
+    def order: Set[(V, U)]
+    def canEqual(other: Any): Boolean = other match {
+      case that: Relation[_, _] with Product2[_, _] => this._1 == that._1 && this._2 == that._2
       case _ => false
     }
-    def hashKey: Int  = endPoints.hashCode
+
+    def relationally(that: Relation[V, U] with Product2[V, U]): Boolean = this canEqual that
   }
 
-  case class Bond[V](val head: V, val tail: V) extends Edge[V]{
-    def endPoints: Set[V] = Set(head, tail)
-    def reverse: Bond[V] = Bond(head, tail)
-    override def equals(that: Any): Boolean = that match {
-      case Bond(x, y) => ( x == head && y == tail) || ( x == tail && y == head )
+  object Relation{
+
+    trait Symm[V] extends Relation[V, V]  {
+      this: Product2[V, V] => 
+
+      def order: Set[(V, V)] = Set( (_1, _2), (_2, _1) )
+      override def relationally(other: Relation[V, V] with Product2[V, V]): Boolean = other match {
+        case that: Symm[_] with Product2[V, V] => 
+          (super.relationally(that)) || (this._1 == that._2 && this._2 == that._1)  
+        case _ => false
+      }
+    }
+
+    trait Asym[V] extends Relation[V, V] {
+      this: Product2[V, V] => 
+
+      def order: Set[(V, V)] = Set( (_1, _2) )
+    }
+  }
+
+
+  trait Edge[V, U] {
+    this: Product2[V, U] with Relation[V, U] with Context => 
+
+    def ends: (V, U) = (_1, _2)
+
+    override def equals(other: Any): Boolean = other match {
+      case that: Edge[V, U] with Product2[V, U] with Relation[V, U] with Context=> 
+        relationally(that) && contextually(that)
       case _ => false
     }
-    def hashKey: Int = ( ((head, tail).hashCode + (tail, head).hashCode) )/2
+    override def hashCode = order.map(_.hashCode).sum/2
   }
-    
-  case class Arrow[V](val head: V, val tail: V) extends Edge[V]{
-    def reverse: Arrow[V] = Arrow[V](head, tail)
-    override def equals(that: Any): Boolean = that match {
-      case Arrow(x, y) => head == x && tail == y
-      case _ => false
-    }
-    def endPoints: List[V] = List(head, tail)
-    def hashKey: Int = (head, tail).hashCode
-  }
-
-  trait EdgeLikePair[V, E[_] <: Edge[_]] {
-    def pairAsEdge(x: V, y: V): E[V]
-    def edgeEndPairs(e: E[V]): List[ (V, V) ] //deserves a better, more descriptive name
-    def edgeEnds(e: E[V]): (V, V)
-  }
-
-  trait BondLikePair[V] extends EdgeLikePair[V, Bond]{
-    def pairAsEdge(x: V, y: V): Bond[V] = Bond(x, y)
-    def edgeEndsList(e: Bond[V]): List[ (V, V)] = e match { case Bond(x, y) => List( (x, y), (y, x) ) }
-    def edgeEnds(e: Bond[V]): (V, V) = e match { case Bond(x, y) => (x, y) }
-  }
-  object BondLikePair{
-    def apply[V]: BondLikePair[V] = new BondLikePair[V]{}
-    implicit object BondLikePairOfInts extends BondLikePair[Int]
-  }
-
-  trait ArrowLikePair[V] extends EdgeLikePair[V, Arrow]{
-    def pairAsEdge(x: V, y: V): Arrow[V] = Arrow(x, y)
-    def edgeEndsList(e: Arrow[V]): List[ (V, V)] = e match { case Arrow(x, y) => List( (x, y) ) }
-    def edgeEnds(e: Arrow[V]): (V, V) = e match { case Arrow(x, y) => (x, y) }
-  }
-
-  object ArrowLikePair{
-    def apply[V]: ArrowLikePair[V] = new ArrowLikePair[V]{}
-    implicit object ArrowLikePairOfInts extends ArrowLikePair[Int]
-  }
-
 }
+

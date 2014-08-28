@@ -10,6 +10,7 @@ import scala.reflect.runtime.universe._
 object TypeExtractors{
   def paramTypeSymb[T](x: T)(implicit tag: TypeTag[T]) = tag.tpe match { case TypeRef(_, symb, _) => symb}
   def paramTypeArgs[T](x: T)(implicit tag: TypeTag[T]) = tag.tpe match { case TypeRef(_, _, args) => args}
+  def paramInfo[T](x: T)(implicit tag: TypeTag[T]) = tag.tpe match { case TypeRef(a, b, c) => (a, b, c) }
 }
 
 
