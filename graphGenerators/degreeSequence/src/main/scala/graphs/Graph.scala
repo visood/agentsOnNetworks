@@ -24,9 +24,6 @@ object GraphTypeClass{
     def asEdge(x: V, y: V): E = asEdge( (x, y) )
   }
 
-  //trait Graph[V, E <: Edge[V, V]]
-
-  trait BipartiteGraph[V, U, E <: Edge[V, U]]
 
   trait GraphLike[V, E <: Edge[V, V] with Context with Relation[V, V], G ]{
 
@@ -75,6 +72,25 @@ object GraphTypeClass{
     import Edges.Edge
     
       
+    type ContextualEdge[V] = Edge[V, V] with Context with Relation[V, V]
+    type IL[V, E <: Edge[V, V]] = Map[V, IndexedSeq[E] ]
+    trait IncidenceList[V, E <: ContextualEdge[V]] extends GraphLike[V, E, IL[V, E]] {
+      this: EdgeLike[V, E] =>
+
+      def vertexes(g: IL[V, E]): Set[V] = g.keys.toSet //assuming a vertex w/o edges is included with an empty Vector
+
+      def adjList(g: IL[V, E]): Map[V, IndexedSeq[V]] = g.mapValues( _.map(_.ends)).mapValues(_.map(_._2))
+      
+      def edges(g: IL[V, E]): Set[E] = g.toSeq.flatMap(_._2).toSet
+
+      def from(es: Set[E]): IL[V, E] = {
+        es.toSeq.flatMap(_.order).groupBy(_._1).mapValues(_.map(asEdge).toIndexedSeq)
+      }
+
+    }
+
+
+
       
     type AL[V] = Map[V, IndexedSeq[V]]
 

@@ -54,6 +54,10 @@ object GraphEdge{
     trait Asym[V] extends Relation[V, V] {
       this: Product2[V, V] => 
 
+      override def relationally(other: Relation[V, V] with Product2[V, V]): Boolean = other match {
+        case that: Asym[_] with Product2[V, V] => super.relationally(that)
+        case _ => false
+      }
       def order: Set[(V, V)] = Set( (_1, _2) )
     }
   }

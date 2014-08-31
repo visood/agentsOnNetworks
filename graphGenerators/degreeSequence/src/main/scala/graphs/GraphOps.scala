@@ -50,3 +50,10 @@ object GraphOps{
   def differ[V, E[_] <: Edge[_], G[_, _[_]], H[_, _[_]]](g: G[V, E], h: H[V, E])
       (implicit evg: GraphLike[V, E, G], evh: GraphLike[V, E, H]): G[V, E] = evg.differ( g, h)
 }
+
+//newer verstion
+
+object GraphOps {
+
+  def vertexes[V, E <: Edge[V] with Product2[V, V] with Relation.Symm[V] with Context, G](g: G)
+    (implicit evg: GraphLike[V, E, G]): Set[V] = evg.vertexes(g)
