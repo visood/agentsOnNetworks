@@ -1,4 +1,5 @@
 package learn.graph
+import scala.util.Random._
 
 object RandomGraphs{
   /**

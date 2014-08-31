@@ -91,84 +91,69 @@ object DepthFirstTraversal {
 }
 
 
-	def edgeSwap( e: (Int, Int), f: (Int, Int)): ((Int, Int), (Int, Int)) = 
-		( makeLink(e._1, f._1), makeLink(e._2, f._2) )
-		
-	def areCnctd(al: AL)(x: Int, y: Int): Boolean = DepthFirstTraversal(al).dftWithSink(y).from(x).contains(y)
+/**
+  * many functions not yet implemented
+object GraphTraversalOps{
+    def edgeSwap( e: (Int, Int), f: (Int, Int)): ((Int, Int), (Int, Int)) = 
+      ( makeLink(e._1, f._1), makeLink(e._2, f._2) )
+      
+    def areCnctd(al: AL)(x: Int, y: Int): Boolean = DepthFirstTraversal(al).dftWithSink(y).from(x).contains(y)
 
 
-  def randomLink(al: AL): Option[(Int, Int)] = linksInAdjList(al) match{
-    case IndexedSeq() => None
-    case links => Some( links( nextInt(links.length) ) )
-  }
+    def randomLink(al: AL): Option[(Int, Int)] = linksInAdjList(al) match{
+      case IndexedSeq() => None
+      case links => Some( links( nextInt(links.length) ) )
+    }
 
 
-  def onCycle(al: AL)(xy: (Int, Int)): Boolean = xy match
-    { case(x, y) => areCnctd( linksRmvd(al)((x, y)) )(x, y)}
+    def onCycle(al: AL)(xy: (Int, Int)): Boolean = xy match
+      { case(x, y) => areCnctd( linksRmvd(al)((x, y)) )(x, y)}
 
-  def firstLinkOnCycle(al: AL): Option[(Int, Int)] = linksInAdjList(al).find( onCycle(al) )
+    def firstLinkOnCycle(al: AL): Option[(Int, Int)] = linksInAdjList(al).find( onCycle(al) )
 
-  def randomLinkOnCycle(al: AL): Option[(Int, Int)] = linksOnCycle(al) match{
-    case IndexedSeq() => None
-    case ls => Some(ls( nextInt(ls.length) ))
-  }
+    def randomLinkOnCycle(al: AL): Option[(Int, Int)] = linksOnCycle(al) match{
+      case IndexedSeq() => None
+      case ls => Some(ls( nextInt(ls.length) ))
+    }
 
-  def hasCycle(al: AL): Boolean = linksInAdjList(al).find(onCycle(al)) match{
-    case None => false
-    case Some(_) => true
-  }
+    def hasCycle(al: AL): Boolean = linksInAdjList(al).find(onCycle(al)) match{
+      case None => false
+      case Some(_) => true
+    }
 
-  def linksOnCycle(al: AL): IndexedSeq[(Int, Int)] = 
-    if (al.isEmpty) IndexedSeq[ (Int, Int) ]() else linksInAdjList(al).filter(onCycle(al))
+    def linksOnCycle(al: AL): IndexedSeq[(Int, Int)] = 
+      if (al.isEmpty) IndexedSeq[ (Int, Int) ]() else linksInAdjList(al).filter(onCycle(al))
 
 
-  
-
-  def numLinksOnCycle(al: AL): Int = linksOnCycle(al).length
-
- //define a component as a set of Ints
-  //write a test to check if the DepthFirstTraversal.from produces a list of distinct elements
-	def vtxCmpnt(al: AL)( x: Int): Set[Int] = DepthFirstTraversal(al).from(x).toSet
-
-	def addCmpnt(c: Set[Int], cs: List[Set[Int]], mkd: Set[Int]): List[Set[Int]] = {
-    if (c.isEmpty) cs
-    else { if (mkd(c.head)) cs else (c :: cs) }
-  }
-
-	def components(al: AL): List[Set[Int]] = {
-		val dftr = DepthFirstTraversal(al)
-		( (List[Set[Int]](), Set[Int]()) /: vertexes(al)) {
-			 case ((cs, mkd), x) =>	if (mkd(x)) (cs, mkd) 
-															else{ val c = dftr.from(x).toSet; (c :: cs, mkd ++ c)}
-		}._1
-	}
-
-  def largestCmpnt(al: AL): Set[Int] = components(al).maxBy( _.size)
-
-		
-
-  def projection(al: AL)(c: Set[Int]): AL = c.map{ case x => (x, al(x).filter( c(_) ) )}.toMap
     
-  
 
+    def numLinksOnCycle(al: AL): Int = linksOnCycle(al).length
 
+  //define a component as a set of Ints
+    //write a test to check if the DepthFirstTraversal.from produces a list of distinct elements
+    def vtxCmpnt(al: AL)( x: Int): Set[Int] = DepthFirstTraversal(al).from(x).toSet
 
-object GraphTests{
-	import Graph._
-	
-	def isSymmetric(al: AL): Boolean = 
-		(for{ (x, nxs) <- al; y <- nxs} yield (x, y)).forall{ case (u, v) => al(v).contains(u)}
+    def addCmpnt(c: Set[Int], cs: List[Set[Int]], mkd: Set[Int]): List[Set[Int]] = {
+      if (c.isEmpty) cs
+      else { if (mkd(c.head)) cs else (c :: cs) }
+    }
 
+    def components(al: AL): List[Set[Int]] = {
+      val dftr = DepthFirstTraversal(al)
+      ( (List[Set[Int]](), Set[Int]()) /: vertexes(al)) {
+        case ((cs, mkd), x) =>	if (mkd(x)) (cs, mkd) 
+                                else{ val c = dftr.from(x).toSet; (c :: cs, mkd ++ c)}
+      }._1
+    }
+
+    def largestCmpnt(al: AL): Set[Int] = components(al).maxBy( _.size)
+
+      
+
+    def projection(al: AL)(c: Set[Int]): AL = c.map{ case x => (x, al(x).filter( c(_) ) )}.toMap
+      
+    
 }
-	
-
-    
-    
 
 
-                              
-
-
-    
-
-
+*/
