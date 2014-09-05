@@ -89,6 +89,10 @@ object GraphEdge{
       case _ => false
     }
     override def hashCode = order.map(_.hashCode).sum/2
+
+    //def swap(that: Edge[V, U]): (Edge[V, U], Edge[V, U])  (this.ends, that.ends) match {
+      //case ((x, y), (u, v)) => (this.asEdge(x, v), that.asEdge(u, y))
+    //}
   }
 
   trait TypeClass[V, U] {
@@ -98,13 +102,19 @@ object GraphEdge{
 
 
 
+
 /** 
   * Endogeneous graphs: with only one vertex type
   */
 
   object Endogeneous{
 
-    trait Link[V] extends Edge[V, V] with Product2[V, V] with Relation[V, V] with Context
+    trait Link[V] extends Edge[V, V] with Product2[V, V] with Relation[V, V] with Context {
+      override def asEdge(x: V, y: V): Link[V] //how can we handle not overriding this???
+      def swap(that: Link[V]): (Link[V], Link[V]) = (this.ends, that.ends) match {
+        case ((x, y), (u, v)) => (this.asEdge(x, v), that.asEdge(u, y))
+      }
+    }
 
     object Link {
       trait TypeClass[V]  {
@@ -112,6 +122,7 @@ object GraphEdge{
 
         def asEdge(e: (V, V)): Link[V]
         def asEdge(x: V, y: V): Link[V] = asEdge( (x, y) )
+
       }
 
       trait Bond[V] extends Link[V] with Relation.Symm[V] {

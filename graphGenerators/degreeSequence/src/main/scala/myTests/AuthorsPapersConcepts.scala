@@ -126,7 +126,7 @@ object ResearchLiterature{
     def asEdge(e: (Vertex, Vertex) ) = Bond(e._1, e._2)
   }
   implicit object glal extends GraphLike.AdjList.Undirected[Vertex]
-  implicit object gles extends GraphLike.EdgeSet.Undirected[Vertex]
+  //implicit object gles extends GraphLike.EdgeSet.Undirected[Vertex]
 
 
   val vs = Seq(Author("a", 1), Author("b", 2), Concept("c", 1), Concept("d", 2), Paper("e", 1), Paper("f", 2))

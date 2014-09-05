@@ -22,7 +22,7 @@ object GraphTypeClassTests{
 
   object ForIncList{
 
-    implicit val glicu: GraphLike[Int, IL[Int]] = GraphLike.IncList.Undirected.OnInts
+    //implicit val glicu: GraphLike[Int, IL[Int]] = GraphLike.IncList.Undirected.OnInts
     implicit val glacu: GraphLike[Int, AL[Int]] = GraphLike.AdjList.Undirected.OnInts
     val workFriends: Set[Link[Int]] = Set( WorkCnxn(1,2), WorkCnxn(2,3) )
     val barFriends: Set[Link[Int]] = Set( BarCnxn(1,3))
